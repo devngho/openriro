@@ -1,13 +1,12 @@
 package io.github.devngho.openriro.client
 
 import io.github.devngho.openriro.common.InternalApi
+import io.github.devngho.openriro.common.LoginFailedException
 import io.github.devngho.openriro.endpoints.Login
 import io.ktor.client.*
 import io.ktor.client.plugins.cookies.*
-import io.ktor.client.plugins.logging.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
@@ -40,7 +39,7 @@ abstract class OpenRiroClient {
 
             result.getOrThrow().let {
                 if (it.code != "000") {
-                    throw Exception("로그인에 실패했습니다: ${it.msg}")
+                    throw LoginFailedException(it.msg)
                 }
             }
         }
@@ -50,7 +49,7 @@ abstract class OpenRiroClient {
     internal suspend fun auth(resp: HttpResponse) = this.also {
         if (cookies.get(Url(config.baseUrl))
                 .find { it.name == "cookie_token" } == null || (resp.status == HttpStatusCode.Found && resp.headers["location"] == "/user.php?action=user_logout")) {
-            login(true)
+            login(true).getOrThrow()
 
             throw Exception("Session expired")
         }
@@ -59,12 +58,13 @@ abstract class OpenRiroClient {
     suspend fun <T> retry(
         block: suspend () -> T,
     ): Result<T> = runCatching {
-        assert(this.config.defaultRetryCount > 0) { "times must be greater than 0" }
+        if (this.config.defaultRetryCount <= 0) throw IllegalArgumentException("defaultRetryCount must be greater than 0")
 
         repeat(this.config.defaultRetryCount - 1) {
             try {
                 return@runCatching block()
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                if (e is LoginFailedException) throw e // login info is wrong
             }
         }
 
@@ -99,11 +99,6 @@ class OpenRiroClientImpl(
         followRedirects = false
     }
 }
-
-data class AuthSession(
-    val token: String,
-    var last: Long
-)
 
 /**
  * 학교 정보와 같은 공통 정보

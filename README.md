@@ -31,4 +31,4 @@ TODO
 - [ktorio/ktor](https://github.com/ktorio/ktor) - [Apache License Version 2.0](https://github.com/ktorio/ktor/blob/main/LICENSE)
 ### Other
 - [kotest](https://github.com/kotest/kotest) - [Apache License Version 2.0](https://github.com/kotest/kotest/blob/master/LICENSE)
-- [skrape-it](https://github.com/skrapeit/skrape.it) - [MIT License](https://github.com/skrapeit/skrape.it/blob/master/LICENSE)
+- [Ksoup](https://github.com/fleeksoft/ksoup) - [MIT License](https://github.com/fleeksoft/ksoup/blob/master/LICENSE)

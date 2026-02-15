@@ -1,5 +1,9 @@
+@file:OptIn(ExperimentalWasmDsl::class)
+
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+
 plugins {
-    kotlin("jvm") version libs.versions.kotlin
+    kotlin("multiplatform") version libs.versions.kotlin
     kotlin("plugin.serialization") version libs.versions.kotlin
     id("org.jetbrains.dokka") version libs.versions.dokka
     id("io.kotest") version libs.versions.kotest
@@ -86,57 +90,78 @@ publishing {
     }
 }
 
-dependencies {
-    implementation(libs.ktor.client.content.negotiation)
-    implementation(libs.ktor.serialization.kotlinx.json)
-    implementation(libs.ktor.client.core)
-    implementation(libs.ktor.client.websockets)
+kotlin {
 
-    implementation(libs.kotlinx.coroutines.core)
-    api(libs.kotlinx.datetime)
-    api(libs.bignum)
-    implementation(libs.bignum.serialization.kotlinx)
-    implementation(libs.ktor.client.cio)
+    // copied from ionspin/kotlin-multiplatform-bignum (at build.gradle.kts), Apache 2.0
+    // removed watchosDeviceArm64 and modified js
+    js {
+        nodejs()
+        browser()
+    }
+    linuxX64()
+    linuxArm64()
+    androidNativeX64()
+    androidNativeX86()
+    androidNativeArm32()
+    androidNativeArm64()
+    iosX64()
+    iosArm64()
+    iosSimulatorArm64()
+    macosX64()
+    macosArm64()
+    tvosArm64()
+    tvosSimulatorArm64()
+    tvosX64()
+    mingwX64()
+    // copy end
 
-    implementation(libs.skrapeit) {
-        exclude(group = "ch.qos.logback", module = "logback-classic")
-        exclude(group = "org.jsoup", module = "jsoup")
-        exclude(group = "xalan", module = "xalan")
-        exclude(group = "org.apache.commons", module = "commons-text")
-        exclude(group = "commons-io", module = "commons-io")
-        exclude(group = "commons-net", module = "commons-net")
-        exclude(group = "commons-codec", module = "commons-codec")
-        exclude(group = "org.apache.commons", module = "commons-lang3")
+    jvm()
+
+    wasmJs {
+        browser()
+        nodejs()
+        d8()
     }
 
-    implementation(libs.logback.classic)
-    implementation(libs.jsoup)
-    implementation(libs.xalan)
-    implementation(libs.commons.net)
-    implementation(libs.commons.text)
-    implementation(libs.commons.io)
-    implementation(libs.commons.codec)
-    implementation(libs.commons.lang3)
-    implementation("io.ktor:ktor-client-logging:3.4.0")
+    sourceSets {
+        commonMain.dependencies {
+            implementation(kotlin("stdlib"))
 
-    testImplementation(libs.kotest.framework.engine)
-    testImplementation(libs.kotest.assertions.core)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.serialization.kotlinx.json)
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.websockets)
 
-    testImplementation(libs.kotlin.test.common)
-    testImplementation(libs.kotlin.test.annotations.common)
-    testImplementation(libs.kotlin.reflect)
+            implementation(libs.kotlinx.coroutines.core)
+            api(libs.kotlinx.datetime)
+            implementation(libs.ktor.client.cio)
 
-    testImplementation(libs.ktor.server.core)
-    testImplementation(libs.ktor.server.cio)
-    testImplementation(libs.ktor.server.websockets)
+            implementation(libs.ksoup)
+        }
 
-    testImplementation(libs.kotest.runner.junit5)
+        jvmTest.dependencies {
+            implementation(libs.kotest.framework.engine)
+            implementation(libs.kotest.assertions.core)
 
-    testImplementation(libs.mockk)
+            implementation(libs.kotlin.test.common)
+            implementation(libs.kotlin.test.annotations.common)
+            implementation(libs.kotlin.reflect)
+
+            implementation(libs.ktor.server.core)
+            implementation(libs.ktor.server.cio)
+            implementation(libs.ktor.server.websockets)
+
+            implementation(libs.kotest.runner.junit5)
+
+            implementation(libs.mockk)
+        }
+
+        applyDefaultHierarchyTemplate()
+    }
 }
 
 tasks {
-    named<Test>("test") {
+    named<Test>("jvmTest") {
         useJUnitPlatform()
         filter {
             isFailOnNoMatchingTests = false

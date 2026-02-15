@@ -5,6 +5,8 @@ import io.github.devngho.openriro.client.OpenRiroClient
 import io.github.devngho.openriro.common.InternalApi
 import io.github.devngho.openriro.client.OpenRiroClientImpl
 import io.github.devngho.openriro.client.json
+import io.github.devngho.openriro.common.LoginFailedException
+import io.github.devngho.openriro.util.PrimitiveAsStringSerializer
 import io.ktor.client.request.forms.FormDataContent
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -12,7 +14,6 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.Parameters
 import io.ktor.http.contentType
-import io.ktor.http.setCookie
 import kotlinx.serialization.Serializable
 
 @InternalApi
@@ -24,7 +25,7 @@ import kotlinx.serialization.Serializable
 class Login: Request<AuthConfig, Login.LoginResponse> {
     @Serializable
     data class LoginResponse(
-        override val code: String,
+        @Serializable(PrimitiveAsStringSerializer::class) override val code: String,
         override val msg: String,
     ): JSONResponse
 
@@ -40,6 +41,12 @@ class Login: Request<AuthConfig, Login.LoginResponse> {
             }))
         }
 
-        json.decodeFromString<LoginResponse>(res.bodyAsText())
+        val body = json.decodeFromString<LoginResponse>(res.bodyAsText())
+
+        if (body.code != "000") {
+            throw LoginFailedException(body.msg)
+        }
+
+        body
     }
 }
