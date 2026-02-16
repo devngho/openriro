@@ -1,13 +1,17 @@
 package io.github.devngho.openriro
 
 import io.github.devngho.openriro.client.AuthConfig
-import io.github.devngho.openriro.client.OpenRiroClient
+import io.github.devngho.openriro.client.OpenRiroAPI
 import io.github.devngho.openriro.client.RequestConfig
 import io.github.devngho.openriro.client.UserType
 import io.github.devngho.openriro.common.InternalApi
 import io.github.devngho.openriro.common.RequestFailedException
+import io.github.devngho.openriro.common.Cate
+import io.github.devngho.openriro.common.DBId
+import io.github.devngho.openriro.common.Uid
 import io.github.devngho.openriro.endpoints.*
 import io.kotest.core.spec.style.DescribeSpec
+import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.collections.shouldNotBeEmpty
 import io.kotest.matchers.comparables.shouldBeGreaterThan
 import io.kotest.matchers.result.shouldBeFailure
@@ -62,23 +66,22 @@ class OpenRiroClientTest : DescribeSpec({
     val pw = fileText[1]
     val baseUrl = fileText[2]
 
-    val client = OpenRiroClient(
+    val api = OpenRiroAPI(
         AuthConfig(UserType.STUDENT_OR_TEACHER, id, pw),
         RequestConfig(baseUrl)
     )
 
     describe("OpenRiroClient") {
         xit("should login") {
-            client.login(force = true).shouldBeSuccess()
+            api.login(force = true).shouldBeSuccess()
             @OptIn(InternalApi::class)
-            client.cookies.get(Url(client.config.baseUrl)).find { it.name == "cookie_token" } shouldNotBe null
+            api.cookies.get(Url(api.config.baseUrl)).find { it.name == "cookie_token" } shouldNotBe null
         }
     }
 
     describe("Login") {
         xit("should execute login request") @OptIn(InternalApi::class) {
-            val loginRequest = Login()
-            val result = loginRequest.execute(client, client.auth)
+            val result = Login.execute(api, api.auth)
 
             result shouldBeSuccess {
                 it.code shouldBe "000"
@@ -87,24 +90,65 @@ class OpenRiroClientTest : DescribeSpec({
         }
     }
 
+    describe("MenuList") {
+        it("should execute request") {
+            val result = MenuList.execute(api, Unit)
+
+            result shouldBeSuccess {
+                it.shouldNotBeEmpty()
+                println(it.map { v -> v.prettyPrint() })
+            }
+        }
+    }
+
     describe("BoardMsg") {
         it("should execute request") {
-            val request = BoardMsg.BoardMsgRequest(db = 1901, page = 1)
-            val result = BoardMsg().execute(client, request)
+            val request = BoardMsg.BoardMsgRequest(db = DBId(1901), page = 1)
+            val result = BoardMsg.execute(api, request)
 
             result shouldBeSuccess {
                 it.totalCount shouldBeGreaterThan 0
                 it.page shouldBe 1
                 it.list.shouldNotBeEmpty()
                 println(it.list)
+            }
+        }
+    }
+
+    describe("BoardMsgItem") {
+        it("should execute request") {
+            val request = BoardMsgItem.BoardMsgItemRequest(db = DBId(1901), uid = Uid(1958))
+            val result = BoardMsgItem.execute(api, request)
+
+            result shouldBeSuccess {
+                it.target shouldBe BoardMsgItem.BoardMsgItemTarget.All
+                it.attachments shouldHaveSize 2
+
+                println(it)
+            }
+        }
+
+        it("should execute request with a form") {
+            val request = BoardMsgItem.BoardMsgItemRequest(db = DBId(1901), uid = Uid(1939))
+            val result = BoardMsgItem.execute(api, request)
+
+            result.exceptionOrNull()?.printStackTrace()
+
+            result shouldBeSuccess {
+                it.target shouldBe BoardMsgItem.BoardMsgItemTarget.Students(
+                    (1..12).map { v -> "1${v.toString().padStart(2, '0')}" } + (1..12).map { v -> "2${v.toString().padStart(2, '0')}" }
+                )
+                it.form shouldNotBe null
+
+                println(it)
             }
         }
     }
 
     describe("Board") {
         it("should execute request") {
-            val request = Board.BoardRequest(db = 1003, page = 1)
-            val result = Board().execute(client, request)
+            val request = Board.BoardRequest(db = DBId(1003), page = 1)
+            val result = Board.execute(api, request)
 
             result shouldBeSuccess {
                 it.totalCount shouldBeGreaterThan 0
@@ -115,10 +159,23 @@ class OpenRiroClientTest : DescribeSpec({
         }
     }
 
+    describe("BoardItem") {
+        it("should execute request") {
+            val request = BoardItem.BoardItemRequest(db = DBId(1003), uid = Uid(3234))
+            val result = BoardItem.execute(api, request)
+
+            result shouldBeSuccess {
+                it.attachments shouldHaveSize 1
+
+                println(it)
+            }
+        }
+    }
+
     describe("Portfolio") {
         it("should execute request") {
-            val request = Portfolio.PortfolioRequest(db = 1553, page = 1)
-            val result = Portfolio().execute(client, request)
+            val request = Portfolio.PortfolioRequest(db = DBId(1553), page = 1)
+            val result = Portfolio.execute(api, request)
 
             result shouldBeSuccess {
                 it.totalCount shouldBeGreaterThan 0
@@ -131,8 +188,8 @@ class OpenRiroClientTest : DescribeSpec({
 
     describe("PortfolioList") {
         it("should execute request") {
-            val request = PortfolioList.PortfolioListRequest(db = 1553, page = 1, cate = 107627)
-            val result = PortfolioList().execute(client, request)
+            val request = PortfolioList.PortfolioListRequest(db = DBId(1553), page = 1, cate = Cate(107627))
+            val result = PortfolioList.execute(api, request)
 
             result shouldBeSuccess {
                 it.totalCount shouldBeGreaterThan 0
@@ -143,8 +200,8 @@ class OpenRiroClientTest : DescribeSpec({
         }
 
         it("should fail incorrect request") {
-            val request = PortfolioList.PortfolioListRequest(db = 1556, page = 1, cate = 107655)
-            val result = PortfolioList().execute(client, request)
+            val request = PortfolioList.PortfolioListRequest(db = DBId(1556), page = 1, cate = Cate(107655))
+            val result = PortfolioList.execute(api, request)
 
             result shouldBeFailure {
                 it.message shouldBe RequestFailedException("이 과제방에 제출한 보고서가 없습니다.").message
@@ -154,18 +211,30 @@ class OpenRiroClientTest : DescribeSpec({
 
     describe("PortfolioItem") {
         it("should execute request") {
-            val request = PortfolioItem.PortfolioItemRequest(db = 1551, cate = 106770, uid = 259050)
-            val result = PortfolioItem().execute(client, request)
+            val request = PortfolioItem.PortfolioItemRequest(db = DBId(1551), cate = Cate(106770), uid = Uid(259050))
+            val result = PortfolioItem.execute(api, request)
 
             result shouldBeSuccess {
                 it.isSubmitted shouldBe true
+//                println(it)
+            }
+        }
+
+        it("should execute request with attachments") {
+            val request = PortfolioItem.PortfolioItemRequest(db = DBId(1502), cate = Cate(107254), uid = Uid(281167))
+            val result = PortfolioItem.execute(api, request)
+
+            result shouldBeSuccess {
+                it.isSubmitted shouldBe true
+                it.attachments shouldHaveSize 1
+                it.attachments[0].file.downloadUrl shouldBe "/portfolio.php?action=down&db=1502&cate=107254&uid=281167&file_num=0&file_code=e95e42b8d7a22258005b73e2301e3f53"
                 println(it)
             }
         }
 
         it("should fail incorrect request") {
-            val request = PortfolioItem.PortfolioItemRequest(db = 1551, cate = 106770, uid = 259186)
-            val result = PortfolioItem().execute(client, request)
+            val request = PortfolioItem.PortfolioItemRequest(db = DBId(1551), cate = Cate(106770), uid = Uid(259186))
+            val result = PortfolioItem.execute(api, request)
 
             result shouldBeFailure {
                 it.message shouldBe RequestFailedException("본인(모둠)만 조회할 수 있습니다.").message
@@ -175,20 +244,37 @@ class OpenRiroClientTest : DescribeSpec({
 
     describe("Score") {
         it("should execute request - 내신") {
-            val request = Score.ScoreRequest(db = 1010, uid = 360)
-            val result = Score().execute(client, request)
+            val request = Score.ScoreRequest(db = DBId(1010), uid = Uid(360))
+            val result = Score.execute(api, request)
 
             result shouldBeSuccess {
-                println(it.prettyPrint())
+                it.scores.forEach { s ->
+                    when (s) {
+                        is Score.ScoreItem.WithStandardScore -> println("과목: ${s.name}, 점수: ${s.score}, 표준점수: ${s.standardScore}, 백분위: ${s.percentile}")
+                        is Score.ScoreItem.WithStanding -> println("과목: ${s.name}, 점수: ${s.score}, 석차: ${s.standing}, 동석차: ${s.tiedStanding}, 전체인원: ${s.candidates}, 백분위: ${s.percentile}")
+                    }
+                }
+
+                it.detailedScores?.forEach { s ->
+                    println("과목: ${s.name}, 합: ${s.weightedScore}")
+                    s.details.forEach { d ->
+                        println("  ${d.name}: ${d.score}")
+                    }
+                }
             }
         }
 
         it("should execute request - 모평") {
-            val request = Score.ScoreRequest(db = 1010, uid = 335)
-            val result = Score().execute(client, request)
+            val request = Score.ScoreRequest(db = DBId(1010), uid = Uid(335))
+            val result = Score.execute(api, request)
 
             result shouldBeSuccess {
-                println(it.prettyPrint())
+                it.scores.forEach { s ->
+                    when (s) {
+                        is Score.ScoreItem.WithStandardScore -> println("과목: ${s.name}, 점수: ${s.score}, 표준점수: ${s.standardScore}, 백분위: ${s.percentile}")
+                        is Score.ScoreItem.WithStanding -> println("과목: ${s.name}, 점수: ${s.score}, 석차: ${s.standing}, 동석차: ${s.tiedStanding}, 전체인원: ${s.candidates}, 백분위: ${s.percentile}")
+                    }
+                }
             }
         }
     }

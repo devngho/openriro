@@ -15,7 +15,7 @@ internal val json = Json {
     ignoreUnknownKeys = true
 }
 
-abstract class OpenRiroClient {
+abstract class OpenRiroAPI {
     abstract val auth: AuthConfig
 
     @InternalApi
@@ -34,10 +34,9 @@ abstract class OpenRiroClient {
                     .find { it.name == "cookie_token" } != null && !force
             ) return@runCatching
 
-            val loginRequest = Login()
-            val result = loginRequest.execute(this, auth)
-
-            result.getOrThrow().let {
+            Login
+                .execute(this, auth)
+                .getOrThrow().let {
                 if (it.code != "000") {
                     throw LoginFailedException(it.msg)
                 }
@@ -58,7 +57,7 @@ abstract class OpenRiroClient {
     suspend fun <T> retry(
         block: suspend () -> T,
     ): Result<T> = runCatching {
-        if (this.config.defaultRetryCount <= 0) throw IllegalArgumentException("defaultRetryCount must be greater than 0")
+        require(this.config.defaultRetryCount > 0) { "defaultRetryCount must be greater than 0" }
 
         repeat(this.config.defaultRetryCount - 1) {
             try {
@@ -75,14 +74,14 @@ abstract class OpenRiroClient {
         operator fun invoke(
             auth: AuthConfig,
             config: RequestConfig,
-        ): OpenRiroClient = OpenRiroClientImpl(auth, config)
+        ): OpenRiroAPI = OpenRiroAPIImpl(auth, config)
     }
 }
 
-class OpenRiroClientImpl(
+class OpenRiroAPIImpl(
     override val auth: AuthConfig,
     override val config: RequestConfig,
-) : OpenRiroClient() {
+) : OpenRiroAPI() {
     @InternalApi
     override var cookies: CookiesStorage = AcceptAllCookiesStorage()
 

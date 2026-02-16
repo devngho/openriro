@@ -1,6 +1,7 @@
 package io.github.devngho.openriro.endpoints
 
-import io.github.devngho.openriro.client.OpenRiroClient
+import io.github.devngho.openriro.client.OpenRiroAPI
+import io.github.devngho.openriro.common.DBId
 import io.github.devngho.openriro.util.html
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -11,14 +12,14 @@ import kotlinx.datetime.format.byUnicodePattern
 /**
  * /board_msg.php에 대응합니다.
  */
-class BoardMsg: Request<BoardMsg.BoardMsgRequest, BoardMsg.BoardMsgResponse> {
+object BoardMsg: Request<BoardMsg.BoardMsgRequest, BoardMsg.BoardMsgResponse> {
     @OptIn(FormatStringsInDatetimeFormats::class)
     private val format = LocalDate.Format {
         byUnicodePattern("yyyy-MM-dd")
     }
 
     data class BoardMsgRequest(
-        val db: Int,
+        val db: DBId,
         val page: Int = 1
     )
 
@@ -47,9 +48,9 @@ class BoardMsg: Request<BoardMsg.BoardMsgRequest, BoardMsg.BoardMsgResponse> {
         마감("마감"),
     }
 
-    override suspend fun execute(client: OpenRiroClient, request: BoardMsgRequest): Result<BoardMsgResponse> = client.retry {
+    override suspend fun execute(client: OpenRiroAPI, request: BoardMsgRequest): Result<BoardMsgResponse> = client.retry {
         val page = client.httpClient
-            .get("${client.config.baseUrl}/board_msg.php?db=${request.db}&page=${request.page}")
+            .get("${client.config.baseUrl}/board_msg.php?db=${request.db.value}&page=${request.page}")
             .also { client.auth(it) }.bodyAsText()
 
         val total: Int

@@ -1,6 +1,8 @@
 package io.github.devngho.openriro.endpoints
 
-import io.github.devngho.openriro.client.OpenRiroClient
+import io.github.devngho.openriro.client.OpenRiroAPI
+import io.github.devngho.openriro.common.Cate
+import io.github.devngho.openriro.common.DBId
 import io.github.devngho.openriro.util.html
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -9,9 +11,9 @@ import kotlinx.datetime.LocalDateTime
 /**
  * /portfolio.php에 대응합니다.
  */
-class Portfolio: Request<Portfolio.PortfolioRequest, Portfolio.PortfolioResponse> {
+object Portfolio: Request<Portfolio.PortfolioRequest, Portfolio.PortfolioResponse> {
     data class PortfolioRequest(
-        val db: Int,
+        val db: DBId,
         val page: Int = 1,
         /**
          * 1이면 전체 연도를 가져오고, 이외의 경우 특정 년도만 가져옵니다.
@@ -26,10 +28,11 @@ class Portfolio: Request<Portfolio.PortfolioRequest, Portfolio.PortfolioResponse
     )
 
     data class PortfolioItem(
+        val dbId: DBId,
         val id: String,
         val kind: PortfolioKind,
         val title: String,
-        val cate: Int,
+        val cate: Cate,
         /**
          * 본인이 제출했으면 true, 아니면 false
          */
@@ -51,9 +54,9 @@ class Portfolio: Request<Portfolio.PortfolioRequest, Portfolio.PortfolioResponse
         마감("마감"),
     }
 
-    override suspend fun execute(client: OpenRiroClient, request: PortfolioRequest): Result<PortfolioResponse> = client.retry {
+    override suspend fun execute(client: OpenRiroAPI, request: PortfolioRequest): Result<PortfolioResponse> = client.retry {
         val page = client.httpClient
-            .get("${client.config.baseUrl}/portfolio.php?db=${request.db}&page=${request.page}&t_year=${request.year}")
+            .get("${client.config.baseUrl}/portfolio.php?db=${request.db.value}&page=${request.page}&t_year=${request.year}")
             .also { client.auth(it) }.bodyAsText()
 
         val total: Int
@@ -68,6 +71,7 @@ class Portfolio: Request<Portfolio.PortfolioRequest, Portfolio.PortfolioResponse
                     if (tds.size != 9) return@forEach
 
                     items += PortfolioItem(
+                        dbId = request.db,
                         id = tds[0].text(),
                         kind = PortfolioKind.entries.find { f -> f.value == tds[1].text() } ?: throw Exception("알 수 없는 종류: ${tds[1].text()}"),
                         title = tds[2].text(),
@@ -84,7 +88,7 @@ class Portfolio: Request<Portfolio.PortfolioRequest, Portfolio.PortfolioResponse
 
                             start..end
                         },
-                        cate = tds[2].select("a")[1].attr("href").substringAfter("cate=").toIntOrNull() ?: 0
+                        cate = Cate(tds[2].select("a")[1].attr("href").substringAfter("cate=").toIntOrNull() ?: 0)
                     )
                 }
             }

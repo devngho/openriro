@@ -1,7 +1,10 @@
 package io.github.devngho.openriro.endpoints
 
-import io.github.devngho.openriro.client.OpenRiroClient
+import io.github.devngho.openriro.client.OpenRiroAPI
+import io.github.devngho.openriro.common.Cate
+import io.github.devngho.openriro.common.DBId
 import io.github.devngho.openriro.common.RequestFailedException
+import io.github.devngho.openriro.common.Uid
 import io.github.devngho.openriro.util.html
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -12,16 +15,18 @@ import kotlinx.datetime.format.byUnicodePattern
 /**
  * /portfolio.php?action=list에 대응합니다.
  */
-class PortfolioList: Request<PortfolioList.PortfolioListRequest, PortfolioList.PortfolioListResponse> {
+object PortfolioList: Request<PortfolioList.PortfolioListRequest, PortfolioList.PortfolioListResponse> {
+    const val PAGE_SIZE = 40
+
     @OptIn(FormatStringsInDatetimeFormats::class)
     private val format = LocalDateTime.Format {
         byUnicodePattern("yyyy-MM-dd HH:mm:ss")
     }
 
     data class PortfolioListRequest(
-        val db: Int,
-        val page: Int,
-        val cate: Int
+        val db: DBId,
+        val page: Int = 1,
+        val cate: Cate
     )
 
     data class PortfolioListResponse(
@@ -31,10 +36,11 @@ class PortfolioList: Request<PortfolioList.PortfolioListRequest, PortfolioList.P
     )
 
     data class PortfolioListItem(
+        val dbId: DBId,
         val id: String,
         val isPrivate: Boolean,
         val title: String,
-        val uid: Int,
+        val uid: Uid,
         /**
          * 본인이 제출했으면 true, 아니면 false
          */
@@ -46,9 +52,9 @@ class PortfolioList: Request<PortfolioList.PortfolioListRequest, PortfolioList.P
         val reads: Int
     )
 
-    override suspend fun execute(client: OpenRiroClient, request: PortfolioListRequest): Result<PortfolioListResponse> = client.retry {
+    override suspend fun execute(client: OpenRiroAPI, request: PortfolioListRequest): Result<PortfolioListResponse> = client.retry {
         val page = client.httpClient
-            .get("${client.config.baseUrl}/portfolio.php?action=list&db=${request.db}&cate=${request.cate}")
+            .get("${client.config.baseUrl}/portfolio.php?action=list&db=${request.db.value}&cate=${request.cate.value}")
             .also { client.auth(it) }.bodyAsText()
 
         if (page.startsWith("<script>")) {
@@ -71,6 +77,7 @@ class PortfolioList: Request<PortfolioList.PortfolioListRequest, PortfolioList.P
                     val dateTooltip = tds[4].selectFirst("span")?.attr("data-tooltip")?.removeSuffix(")")?.split(" ", "\n") ?: return@forEach
 
                     items += PortfolioListItem(
+                        dbId = request.db,
                         id = tds[0].text(),
                         title = tds[1].text(),
                         isSubmitted = tds[1].select(".my").isNotEmpty(),
@@ -80,7 +87,7 @@ class PortfolioList: Request<PortfolioList.PortfolioListRequest, PortfolioList.P
                         summitedAt = LocalDateTime.parse("${dateTooltip[0]} ${dateTooltip[1]}", format),
                         lastModifiedAt = LocalDateTime.parse("${dateTooltip[4]} ${dateTooltip[5]}", format),
                         reads = tds[5].text().toIntOrNull() ?: 0,
-                        uid = tds[1].selectFirst("a")?.attr("href")?.substringAfter("bL(")?.split(",")[1]?.toIntOrNull() ?: 0
+                        uid = Uid(tds[1].selectFirst("a")?.attr("href")?.substringAfter("bL(")?.split(",")[1]?.toIntOrNull() ?: 0)
                     )
                 }
             }

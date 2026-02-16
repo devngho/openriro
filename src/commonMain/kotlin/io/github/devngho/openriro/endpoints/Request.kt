@@ -1,9 +1,9 @@
 package io.github.devngho.openriro.endpoints
 
-import io.github.devngho.openriro.client.OpenRiroClient
+import io.github.devngho.openriro.client.OpenRiroAPI
 
 interface Request<Req, Res> {
-    suspend fun execute(client: OpenRiroClient, request: Req): Result<Res>
+    suspend fun execute(client: OpenRiroAPI, request: Req): Result<Res>
 }
 
 interface JSONResponse {

@@ -1,7 +1,9 @@
 package io.github.devngho.openriro.endpoints
 
 import com.fleeksoft.ksoup.nodes.Element
-import io.github.devngho.openriro.client.OpenRiroClient
+import io.github.devngho.openriro.client.OpenRiroAPI
+import io.github.devngho.openriro.common.DBId
+import io.github.devngho.openriro.common.Uid
 import io.github.devngho.openriro.util.html
 import io.ktor.client.request.*
 import io.ktor.client.request.forms.*
@@ -11,10 +13,10 @@ import io.ktor.http.*
 /**
  * /board.php?action=score에 대응합니다.
  */
-class Score: Request<Score.ScoreRequest, Score.ScoreResponse> {
+object Score: Request<Score.ScoreRequest, Score.ScoreResponse> {
     data class ScoreRequest(
-        val db: Int,
-        val uid: Int? = null,
+        val db: DBId,
+        val uid: Uid? = null,
     )
 
     data class ScoreResponse(
@@ -26,7 +28,7 @@ class Score: Request<Score.ScoreRequest, Score.ScoreResponse> {
 
     data class ScoreOptions(
         val name: String,
-        val uid: Int
+        val uid: Uid
     )
 
     sealed interface ScoreItem {
@@ -144,9 +146,9 @@ class Score: Request<Score.ScoreRequest, Score.ScoreResponse> {
         flush()
     }
 
-    override suspend fun execute(client: OpenRiroClient, request: ScoreRequest): Result<ScoreResponse> = client.retry {
+    override suspend fun execute(client: OpenRiroAPI, request: ScoreRequest): Result<ScoreResponse> = client.retry {
         val page = client.httpClient
-            .get("${client.config.baseUrl}/board.php?action=score&db=${request.db}&uid=${request.uid}")
+            .get("${client.config.baseUrl}/board.php?action=score&db=${request.db.value}&uid=${request.uid?.value}")
             .also { client.auth(it) }.bodyAsText()
 
         val items = mutableListOf<ScoreItem>()
@@ -181,9 +183,9 @@ class Score: Request<Score.ScoreRequest, Score.ScoreResponse> {
             selectFirst(".rd_select")!!.select("option").forEach {
                 val option = ScoreOptions(
                     name = it.text(),
-                    uid = it.attr("value").let { v ->
+                    uid = Uid(it.attr("value").let { v ->
                         v.ifBlank { return@forEach }
-                    }.toInt()
+                    }.toInt())
                 )
 
                 if (it.hasAttr("selected")) {
@@ -208,7 +210,7 @@ class Score: Request<Score.ScoreRequest, Score.ScoreResponse> {
                             name = tds[0].text(),
                             score = tds[1].text().toDoubleOrNull(),
                             standing = null,
-                            percentile = null,
+                            percentile = tds[3].text().toDoubleOrNull(),
                             grade = tds[4].text().toDoubleOrNull(),
                             tiedStanding = null,
                             candidates = null,
@@ -223,7 +225,7 @@ class Score: Request<Score.ScoreRequest, Score.ScoreResponse> {
                         name = tds[0].text(),
                         score = tds[1].text().toDoubleOrNull(),
                         standing = standing,
-                        percentile = tds[3].text().removeSuffix("%").toDoubleOrNull(),
+                        percentile = tds[3].text().toDoubleOrNull(),
                         grade = tds[4].text().toIntOrNull(),
                         tiedStanding = tiedStanding,
                         candidates = candidates

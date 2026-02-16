@@ -1,6 +1,7 @@
 package io.github.devngho.openriro.endpoints
 
-import io.github.devngho.openriro.client.OpenRiroClient
+import io.github.devngho.openriro.client.OpenRiroAPI
+import io.github.devngho.openriro.common.DBId
 import io.github.devngho.openriro.util.html
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -11,14 +12,14 @@ import kotlinx.datetime.format.byUnicodePattern
 /**
  * /board.php에 대응합니다.
  */
-class Board: Request<Board.BoardRequest, Board.BoardResponse> {
+object Board: Request<Board.BoardRequest, Board.BoardResponse> {
     @OptIn(FormatStringsInDatetimeFormats::class)
     private val format = LocalDate.Format {
         byUnicodePattern("yyyy.MM.dd")
     }
 
     data class BoardRequest(
-        val db: Int,
+        val db: DBId,
         val page: Int = 1
     )
 
@@ -46,9 +47,9 @@ class Board: Request<Board.BoardRequest, Board.BoardResponse> {
         마감("마감"),
     }
 
-    override suspend fun execute(client: OpenRiroClient, request: BoardRequest): Result<BoardResponse> = client.retry {
+    override suspend fun execute(client: OpenRiroAPI, request: BoardRequest): Result<BoardResponse> = client.retry {
         val page = client.httpClient
-            .get("${client.config.baseUrl}/board.php?db=${request.db}&page=${request.page}")
+            .get("${client.config.baseUrl}/board.php?db=${request.db.value}&page=${request.page}")
             .also { client.auth(it) }.bodyAsText()
 
         val total: Int

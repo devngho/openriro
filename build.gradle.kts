@@ -91,7 +91,6 @@ publishing {
 }
 
 kotlin {
-
     // copied from ionspin/kotlin-multiplatform-bignum (at build.gradle.kts), Apache 2.0
     // removed watchosDeviceArm64 and modified js
     js {
@@ -161,6 +160,45 @@ kotlin {
 }
 
 tasks {
+    // copied from ionspin/kotlin-multiplatform-bignum (at build.gradle.kts), Apache 2.0
+    // fixed for correct task dependencies in this project
+    all {
+        val targets = listOf(
+            "AndroidNativeArm32",
+            "AndroidNativeArm64",
+            "AndroidNativeX64",
+            "AndroidNativeX86",
+            "Js",
+            "Jvm",
+            "KotlinMultiplatform",
+            "LinuxArm64",
+            "LinuxX64",
+            "WasmJs",
+            "MingwX64",
+            "IosArm64",
+            "IosSimulatorArm64",
+            "IosX64",
+            "MacosArm64",
+            "MacosX64",
+            "TvosArm64",
+            "TvosSimulatorArm64",
+            "TvosX64",
+        )
+
+//        targets.dropLast(1).forEachIndexed { index, target ->
+//            if (this.name.startsWith("sign${target}Publication")) {
+//                this.mustRunAfter("sign${targets[index + 1]}Publication")
+//            }
+//        }
+
+        if (this.name.startsWith("publish") || this.name.startsWith("linkDebugTest") || this.name.startsWith("compileTest")) {
+            targets.forEach {
+                this.mustRunAfter("sign${it}Publication")
+            }
+        }
+    }
+    // copy end
+
     named<Test>("jvmTest") {
         useJUnitPlatform()
         filter {

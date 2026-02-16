@@ -1,7 +1,12 @@
 package io.github.devngho.openriro.endpoints
 
-import io.github.devngho.openriro.client.OpenRiroClient
+import io.github.devngho.openriro.client.OpenRiroAPI
+import io.github.devngho.openriro.common.Attachment
+import io.github.devngho.openriro.common.Attachment.File
+import io.github.devngho.openriro.common.Cate
+import io.github.devngho.openriro.common.DBId
 import io.github.devngho.openriro.common.RequestFailedException
+import io.github.devngho.openriro.common.Uid
 import io.github.devngho.openriro.util.html
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -12,16 +17,16 @@ import kotlinx.datetime.format.byUnicodePattern
 /**
  * /portfolio.php?action=view에 대응합니다.
  */
-class PortfolioItem: Request<PortfolioItem.PortfolioItemRequest, PortfolioItem.PortfolioItemResponse> {
+object PortfolioItem: Request<PortfolioItem.PortfolioItemRequest, PortfolioItem.PortfolioItemResponse> {
     @OptIn(FormatStringsInDatetimeFormats::class)
     private val format = LocalDateTime.Format {
         byUnicodePattern("yyyy-MM-dd HH:mm:ss")
     }
 
     data class PortfolioItemRequest(
-        val db: Int,
-        val cate: Int,
-        val uid: Int
+        val db: DBId,
+        val cate: Cate,
+        val uid: Uid
     )
 
     data class PortfolioItemResponse(
@@ -39,12 +44,13 @@ class PortfolioItem: Request<PortfolioItem.PortfolioItemRequest, PortfolioItem.P
         /**
          * 제출 항목의 HTML 본문
          */
-        val body: String
+        val body: String,
+        val attachments: List<Attachment>
     )
 
-    override suspend fun execute(client: OpenRiroClient, request: PortfolioItemRequest): Result<PortfolioItemResponse> = client.retry {
+    override suspend fun execute(client: OpenRiroAPI, request: PortfolioItemRequest): Result<PortfolioItemResponse> = client.retry {
         val page = client.httpClient
-            .get("${client.config.baseUrl}/portfolio.php?action=view&db=${request.db}&cate=${request.cate}&uid=${request.uid}")
+            .get("${client.config.baseUrl}/portfolio.php?action=view&db=${request.db.value}&cate=${request.cate.value}&uid=${request.uid.value}")
             .also { client.auth(it) }.bodyAsText()
 
         if (page.startsWith("<script>")) {
@@ -69,6 +75,27 @@ class PortfolioItem: Request<PortfolioItem.PortfolioItemRequest, PortfolioItem.P
 
             val body = selectFirst("#rText")!!.html()
 
+            val attachments = selectFirst(".attched_file")?.select(".btn_file")?.map {
+                val spans = it.select("span")
+                val name = spans[0].text()
+                val lastModifiedAt = LocalDateTime.parse(spans[0].attr("data-tooltip").substringAfter("최종 수정 시간 : ").substringBefore(" / "), format)
+                val size = spans[1].text().substringAfter("[").substringBefore("]")
+                val file = it.attr("href").substringAfter("bL(").substringBefore(")").split(",")
+
+                Attachment(
+                    name = name,
+                    file = File.Portfolio(
+                        db = request.db,
+                        cate = request.cate,
+                        uid = Uid(file[1].toIntOrNull()!!),
+                        fileNumber = file[2].toIntOrNull()!!,
+                        fileCode = file[3].trim('\''),
+                        size = size,
+                        lastModifiedAt = lastModifiedAt,
+                    )
+                )
+            } ?: emptyList()
+
             PortfolioItemResponse(
                 title = title,
                 author = author,
@@ -78,7 +105,8 @@ class PortfolioItem: Request<PortfolioItem.PortfolioItemRequest, PortfolioItem.P
                 commentCount = commentCount,
                 summitedAt = summitedAt,
                 lastModifiedAt = lastModifiedAt,
-                body = body
+                body = body,
+                attachments = attachments
             )
         }
     }
