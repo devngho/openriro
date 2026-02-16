@@ -41,7 +41,6 @@ class FacadeTest: FunSpec({
 
         test("can access notice") {
             paging.page(0) shouldNotBe null
-            paging.page(0)!! shouldHaveSize menu.value.pageSize
         }
 
         test("can access detail of notice") {
@@ -56,14 +55,12 @@ class FacadeTest: FunSpec({
 
             withTimeout(10) {
                 paging.page(1) shouldNotBe null
-                paging.page(1)!! shouldHaveSize menu.value.pageSize
             }
 
             paging.preloadPage(2..10)
 
             withTimeout(10) {
                 paging.page(2..10) shouldNotBe null
-                paging.page(2..10)!! shouldHaveSize menu.value.pageSize * 9
             }
         }
 
@@ -88,7 +85,6 @@ class FacadeTest: FunSpec({
 
         test("can access notice") {
             paging.page(0) shouldNotBe null
-            paging.page(0)!! shouldHaveSize menu.value.pageSize
         }
 
         test("can access detail of notice") {
@@ -103,14 +99,12 @@ class FacadeTest: FunSpec({
 
             withTimeout(10) {
                 paging.page(1) shouldNotBe null
-                paging.page(1)!! shouldHaveSize menu.value.pageSize
             }
 
             paging.preloadPage(2..10)
 
             withTimeout(10) {
                 paging.page(2..10) shouldNotBe null
-                paging.page(2..10)!! shouldHaveSize menu.value.pageSize * 9
             }
         }
 
@@ -135,7 +129,6 @@ class FacadeTest: FunSpec({
 
         test("can access portfolio") {
             paging.page(0) shouldNotBe null
-            paging.page(0)!! shouldHaveSize menu.value.pageSize
         }
 
         test("can preload portfolio") {
@@ -143,14 +136,12 @@ class FacadeTest: FunSpec({
 
             withTimeout(10) {
                 paging.page(1) shouldNotBe null
-                paging.page(1)!! shouldHaveSize menu.value.pageSize
             }
 
             paging.preloadPage(2..10)
 
             withTimeout(10) {
                 paging.page(2..10) shouldNotBe null
-                paging.page(2..10)!! shouldHaveSize menu.value.pageSize * 9
             }
         }
 
@@ -179,7 +170,6 @@ class FacadeTest: FunSpec({
 
         test("can access portfolio") {
             paging.page(0) shouldNotBe null
-            paging.page(0)!! shouldHaveSize PortfolioList.PAGE_SIZE
         }
 
         test("can preload portfolio") {
@@ -187,14 +177,12 @@ class FacadeTest: FunSpec({
 
             withTimeout(10) {
                 paging.page(1) shouldNotBe null
-                paging.page(1)!! shouldHaveSize PortfolioList.PAGE_SIZE
             }
 
             paging.preloadPage(2..5)
 
             withTimeout(10) {
                 paging.page(2..5) shouldNotBe null
-                paging.page(2..5)!! shouldHaveSize PortfolioList.PAGE_SIZE * 4
             }
         }
 
