@@ -31,6 +31,7 @@ object BoardMsg: Request<BoardMsg.BoardMsgRequest, BoardMsg.BoardMsgResponse> {
     )
 
     data class BoardMsgItem(
+        val dbId: DBId,
         val id: String,
         val uid: Uid,
         val kind: BoardMsgKind,
@@ -67,6 +68,7 @@ object BoardMsg: Request<BoardMsg.BoardMsgRequest, BoardMsg.BoardMsgResponse> {
                     if (tds.size != 8) return@forEach
 
                     items += BoardMsgItem(
+                        dbId = request.db,
                         id = tds[0].text(),
                         uid = Uid(tds[3].selectFirst("a")!!.attr("href").substringAfter("bL(").substringBefore(")").split(",")[1].toInt()),
                         kind = BoardMsgKind.entries.find { f -> f.value == tds[1].text() } ?: throw Exception("알 수 없는 종류: ${tds[1].text()}"),

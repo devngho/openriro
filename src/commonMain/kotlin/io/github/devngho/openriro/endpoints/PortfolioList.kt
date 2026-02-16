@@ -16,8 +16,6 @@ import kotlinx.datetime.format.byUnicodePattern
  * /portfolio.php?action=list에 대응합니다.
  */
 object PortfolioList: Request<PortfolioList.PortfolioListRequest, PortfolioList.PortfolioListResponse> {
-    const val PAGE_SIZE = 40
-
     @OptIn(FormatStringsInDatetimeFormats::class)
     private val format = LocalDateTime.Format {
         byUnicodePattern("yyyy-MM-dd HH:mm:ss")
@@ -37,6 +35,7 @@ object PortfolioList: Request<PortfolioList.PortfolioListRequest, PortfolioList.
 
     data class PortfolioListItem(
         val dbId: DBId,
+        val cate: Cate,
         val id: String,
         val isPrivate: Boolean,
         val title: String,
@@ -54,7 +53,7 @@ object PortfolioList: Request<PortfolioList.PortfolioListRequest, PortfolioList.
 
     override suspend fun execute(client: OpenRiroAPI, request: PortfolioListRequest): Result<PortfolioListResponse> = client.retry {
         val page = client.httpClient
-            .get("${client.config.baseUrl}/portfolio.php?action=list&db=${request.db.value}&cate=${request.cate.value}")
+            .get("${client.config.baseUrl}/portfolio.php?action=list&db=${request.db.value}&cate=${request.cate.value}&page=${request.page}")
             .also { client.auth(it) }.bodyAsText()
 
         if (page.startsWith("<script>")) {
@@ -78,6 +77,7 @@ object PortfolioList: Request<PortfolioList.PortfolioListRequest, PortfolioList.
 
                     items += PortfolioListItem(
                         dbId = request.db,
+                        cate = request.cate,
                         id = tds[0].text(),
                         title = tds[1].text(),
                         isSubmitted = tds[1].select(".my").isNotEmpty(),

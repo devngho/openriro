@@ -26,7 +26,7 @@ data class Attachment(
             val fileNumber: Int,
             val fileCode: String
         ): File {
-            override val downloadUrl: String = "/portfolio.php?action=down&db=${db.value}&uid=${uid.value}&file_num=$fileNumber&file_code=$fileCode"
+            override val downloadUrl: String = "/board.php?action=down&db=${db.value}&uid=${uid.value}&file_num=$fileNumber&file_code=$fileCode"
         }
 
         data class BoardMsg(

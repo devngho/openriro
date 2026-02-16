@@ -7,6 +7,7 @@ import io.github.devngho.openriro.client.UserType
 import io.github.devngho.openriro.common.Menu
 import io.github.devngho.openriro.endpoints.PortfolioList
 import io.github.devngho.openriro.facade.OpenRiroClient
+import io.github.devngho.openriro.facade.OpenRiroClient.Companion.get
 import io.github.devngho.openriro.facade.OpenRiroClient.Companion.list
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldHaveSize
@@ -41,6 +42,13 @@ class FacadeTest: FunSpec({
         test("can access notice") {
             paging.page(0) shouldNotBe null
             paging.page(0)!! shouldHaveSize menu.value.pageSize
+        }
+
+        test("can access detail of notice") {
+            val page = paging.get(0) ?: return@test
+            val detail = page.get().getOrThrow()
+
+            detail.title shouldNotBe null
         }
 
         test("can preload notice") {
@@ -81,6 +89,13 @@ class FacadeTest: FunSpec({
         test("can access notice") {
             paging.page(0) shouldNotBe null
             paging.page(0)!! shouldHaveSize menu.value.pageSize
+        }
+
+        test("can access detail of notice") {
+            val page = paging.get(0) ?: return@test
+            val detail = page.get().getOrThrow()
+
+            detail.title shouldNotBe null
         }
 
         test("can preload notice") {

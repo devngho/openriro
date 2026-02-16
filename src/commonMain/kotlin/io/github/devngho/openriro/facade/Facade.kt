@@ -4,9 +4,12 @@ import io.github.devngho.openriro.client.OpenRiroAPI
 import io.github.devngho.openriro.common.InternalApi
 import io.github.devngho.openriro.common.Menu
 import io.github.devngho.openriro.endpoints.Board
+import io.github.devngho.openriro.endpoints.BoardItem
 import io.github.devngho.openriro.endpoints.BoardMsg
+import io.github.devngho.openriro.endpoints.BoardMsgItem
 import io.github.devngho.openriro.endpoints.MenuList
 import io.github.devngho.openriro.endpoints.Portfolio
+import io.github.devngho.openriro.endpoints.PortfolioItem
 import io.github.devngho.openriro.endpoints.PortfolioList
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -144,11 +147,14 @@ class OpenRiroClient(
         suspend fun WithClient<Menu.BoardMsg>.list(): Result<Paged<BoardMsg.BoardMsgItem>> = runCatching {
             val res = BoardMsg.execute(this.client.api, BoardMsg.BoardMsgRequest(db = this.value.dbId)).getOrThrow()
 
-            val pages = Array<List<WithClient<BoardMsg.BoardMsgItem>>?>(calculateTotalPages(res.totalCount, this.value.pageSize)) { null }
+            // if page is only one, it's okay to assume that the page size is the total count
+            // otherwise, this page's count is the page size
+            // so page size is always the same as the count of the first page
+            val pages = Array<List<WithClient<BoardMsg.BoardMsgItem>>?>(calculateTotalPages(res.totalCount, res.list.count())) { null }
 
             pages[0] = res.list.map { this.client.WithClient(it) }
 
-            this.client.Paged(pages, this.value.pageSize) { page ->
+            this.client.Paged(pages, res.list.count()) { page ->
                 BoardMsg.execute(this.client.api, BoardMsg.BoardMsgRequest(db = this.value.dbId, page = page + 1)).getOrThrow().list
             }
         }
@@ -157,11 +163,11 @@ class OpenRiroClient(
         suspend fun WithClient<Menu.Board>.list(): Result<Paged<Board.BoardItem>> = runCatching {
             val res = Board.execute(this.client.api, Board.BoardRequest(db = this.value.dbId)).getOrThrow()
 
-            val pages = Array<List<WithClient<Board.BoardItem>>?>(calculateTotalPages(res.totalCount, this.value.pageSize)) { null }
+            val pages = Array<List<WithClient<Board.BoardItem>>?>(calculateTotalPages(res.totalCount, res.list.count())) { null }
 
             pages[0] = res.list.map { this.client.WithClient(it) }
 
-            this.client.Paged(pages, this.value.pageSize) { page ->
+            this.client.Paged(pages, res.list.count()) { page ->
                 Board.execute(this.client.api, Board.BoardRequest(db = this.value.dbId, page = page + 1)).getOrThrow().list
             }
         }
@@ -170,11 +176,11 @@ class OpenRiroClient(
         suspend fun WithClient<Menu.Portfolio>.list(): Result<Paged<Portfolio.PortfolioItem>> = runCatching {
             val res = Portfolio.execute(this.client.api, Portfolio.PortfolioRequest(db = this.value.dbId)).getOrThrow()
 
-            val pages = Array<List<WithClient<Portfolio.PortfolioItem>>?>(calculateTotalPages(res.totalCount, this.value.pageSize)) { null }
+            val pages = Array<List<WithClient<Portfolio.PortfolioItem>>?>(calculateTotalPages(res.totalCount, res.list.count())) { null }
 
             pages[0] = res.list.map { this.client.WithClient(it) }
 
-            this.client.Paged(pages, this.value.pageSize) { page ->
+            this.client.Paged(pages, res.list.count()) { page ->
                 Portfolio.execute(this.client.api, Portfolio.PortfolioRequest(db = this.value.dbId, page = page + 1))
                     .getOrThrow().list
             }
@@ -184,14 +190,29 @@ class OpenRiroClient(
         suspend fun WithClient<Portfolio.PortfolioItem>.list(): Result<Paged<PortfolioList.PortfolioListItem>> = runCatching {
             val res = PortfolioList.execute(this.client.api, PortfolioList.PortfolioListRequest(db = this.value.dbId, cate = this.value.cate)).getOrThrow()
 
-            val pages = Array<List<WithClient<PortfolioList.PortfolioListItem>>?>(calculateTotalPages(res.totalCount, PortfolioList.PAGE_SIZE)) { null }
+            val pages = Array<List<WithClient<PortfolioList.PortfolioListItem>>?>(calculateTotalPages(res.totalCount, res.list.count())) { null }
 
             pages[0] = res.list.map { this.client.WithClient(it) }
 
-            this.client.Paged(pages, PortfolioList.PAGE_SIZE) { page ->
+            this.client.Paged(pages, res.list.count()) { page ->
                 PortfolioList.execute(this.client.api, PortfolioList.PortfolioListRequest(db = this.value.dbId, page = page + 1, cate = this.value.cate))
                     .getOrThrow().list
             }
+        }
+
+        @JvmName("getBoardItem")
+        suspend fun WithClient<Board.BoardItem>.get(): Result<BoardItem.BoardItemResponse> = runCatching {
+            BoardItem.execute(this.client.api, BoardItem.BoardItemRequest(db = this.value.dbId, uid = this.value.uid)).getOrThrow()
+        }
+
+        @JvmName("getBoardMsgItem")
+        suspend fun WithClient<BoardMsg.BoardMsgItem>.get(): Result<BoardMsgItem.BoardMsgItemResponse> = runCatching {
+            BoardMsgItem.execute(this.client.api, BoardMsgItem.BoardMsgItemRequest(db = this.value.dbId, uid = this.value.uid)).getOrThrow()
+        }
+
+        @JvmName("getPortfolioItem")
+        suspend fun WithClient<PortfolioList.PortfolioListItem>.get(): Result<PortfolioItem.PortfolioItemResponse> = runCatching {
+            PortfolioItem.execute(this.client.api, PortfolioItem.PortfolioItemRequest(db = this.value.dbId, cate = this.value.cate, uid = this.value.uid)).getOrThrow()
         }
     }
 }
