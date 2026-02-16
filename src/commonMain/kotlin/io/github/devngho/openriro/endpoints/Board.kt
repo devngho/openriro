@@ -2,6 +2,7 @@ package io.github.devngho.openriro.endpoints
 
 import io.github.devngho.openriro.client.OpenRiroAPI
 import io.github.devngho.openriro.common.DBId
+import io.github.devngho.openriro.common.Uid
 import io.github.devngho.openriro.util.html
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -31,6 +32,7 @@ object Board: Request<Board.BoardRequest, Board.BoardResponse> {
 
     data class BoardItem(
         val id: String,
+        val uid: Uid,
         val kind: BoardMsgKind,
         val title: String,
         val hasAttachments: Boolean,
@@ -65,6 +67,7 @@ object Board: Request<Board.BoardRequest, Board.BoardResponse> {
 
                     items += BoardItem(
                         id = tds[0].text(),
+                        uid = Uid(tds[2].selectFirst("a")!!.attr("href").substringAfter("bL(").substringBefore(")").split(",")[1].toInt()),
                         kind = BoardMsgKind.entries.find { it.value == tds[1].text() } ?: throw Exception("알 수 없는 종류: ${tds[1].text()}"),
                         title = tds[2].text(),
                         hasAttachments = tds[3].text() != "-",
