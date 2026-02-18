@@ -2,7 +2,11 @@ package io.github.devngho.openriro.endpoints
 
 import com.fleeksoft.ksoup.nodes.Element
 import io.github.devngho.openriro.client.OpenRiroAPI
+import io.github.devngho.openriro.common.BoardKindMismatchException
 import io.github.devngho.openriro.common.DBId
+import io.github.devngho.openriro.common.InternalApi
+import io.github.devngho.openriro.common.Menu
+import io.github.devngho.openriro.common.RequestFailedException
 import io.github.devngho.openriro.common.Uid
 import io.github.devngho.openriro.util.html
 import io.ktor.client.request.*
@@ -28,6 +32,7 @@ object Score: Request<Score.ScoreRequest, Score.ScoreResponse> {
 
     data class ScoreOptions(
         val name: String,
+        val dbId: DBId,
         val uid: Uid
     )
 
@@ -146,6 +151,7 @@ object Score: Request<Score.ScoreRequest, Score.ScoreResponse> {
         flush()
     }
 
+    @OptIn(InternalApi::class)
     override suspend fun execute(client: OpenRiroAPI, request: ScoreRequest): Result<ScoreResponse> = client.retry {
         val page = client.httpClient
             .get("${client.config.baseUrl}/board.php?action=score&db=${request.db.value}&uid=${request.uid?.value}")
@@ -155,6 +161,19 @@ object Score: Request<Score.ScoreRequest, Score.ScoreResponse> {
         val detailedItems = mutableListOf<ScoreDetailedItem>()
         val options = mutableListOf<ScoreOptions>()
         var selectedOption: ScoreOptions? = null
+
+        if (page.startsWith("<script>")) {
+            val errorMsg = page.substringAfter("alert(\"").substringBefore("\");")
+
+            if (errorMsg == "비정상적인 접속입니다.") {
+                // try checking board
+                val res = Board.execute(client, Board.BoardRequest(request.db, 1))
+
+                if (res.isSuccess) throw BoardKindMismatchException(Menu.Board.Score::class, Menu.Board.Normal::class)
+            }
+
+            throw RequestFailedException(errorMsg)
+        }
 
         html(page) {
             if (selectFirst(".check_password_box") != null) {
@@ -183,6 +202,7 @@ object Score: Request<Score.ScoreRequest, Score.ScoreResponse> {
             selectFirst(".rd_select")!!.select("option").forEach {
                 val option = ScoreOptions(
                     name = it.text(),
+                    dbId = request.db,
                     uid = Uid(it.attr("value").let { v ->
                         v.ifBlank { return@forEach }
                     }.toInt())

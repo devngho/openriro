@@ -2,6 +2,7 @@ package io.github.devngho.openriro.endpoints
 
 import io.github.devngho.openriro.client.OpenRiroAPI
 import io.github.devngho.openriro.common.DBId
+import io.github.devngho.openriro.common.RequestFailedException
 import io.github.devngho.openriro.common.Uid
 import io.github.devngho.openriro.util.html
 import io.ktor.client.request.*
@@ -33,7 +34,7 @@ object BoardMsg: Request<BoardMsg.BoardMsgRequest, BoardMsg.BoardMsgResponse> {
     data class BoardMsgItem(
         val dbId: DBId,
         val id: String,
-        val uid: Uid,
+        val uid: Result<Uid>,
         val kind: BoardMsgKind,
         val target: String,
         val title: String,
@@ -70,7 +71,23 @@ object BoardMsg: Request<BoardMsg.BoardMsgRequest, BoardMsg.BoardMsgResponse> {
                     items += BoardMsgItem(
                         dbId = request.db,
                         id = tds[0].text(),
-                        uid = Uid(tds[3].selectFirst("a")!!.attr("href").substringAfter("bL(").substringBefore(")").split(",")[1].toInt()),
+                        uid = runCatching {
+                            Uid(tds[3].selectFirst("a")!!.attr("href").substringAfter("bL(").substringBefore(")").split(",")[1].toInt())
+                        }.let { t ->
+                            if (t.isFailure) {
+                                // try to get error message
+                                try {
+                                    val errorMsg = tds[3].selectFirst("a")?.attr("href")?.substringAfter("alert(\'")
+                                        ?.substringBefore("\');")
+
+                                    if (errorMsg != null) {
+                                        return@let Result.failure(RequestFailedException(errorMsg))
+                                    }
+                                } catch (_: Exception) {}
+                            }
+
+                            t
+                        },
                         kind = BoardMsgKind.entries.find { f -> f.value == tds[1].text() } ?: throw Exception("알 수 없는 종류: ${tds[1].text()}"),
                         target = tds[2].text(),
                         title = tds[3].text(),

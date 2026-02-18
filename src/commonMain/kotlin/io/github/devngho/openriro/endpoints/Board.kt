@@ -1,7 +1,10 @@
 package io.github.devngho.openriro.endpoints
 
 import io.github.devngho.openriro.client.OpenRiroAPI
+import io.github.devngho.openriro.common.BoardKindMismatchException
 import io.github.devngho.openriro.common.DBId
+import io.github.devngho.openriro.common.InternalApi
+import io.github.devngho.openriro.common.Menu
 import io.github.devngho.openriro.common.Uid
 import io.github.devngho.openriro.util.html
 import io.ktor.client.request.*
@@ -50,6 +53,7 @@ object Board: Request<Board.BoardRequest, Board.BoardResponse> {
         마감("마감"),
     }
 
+    @OptIn(InternalApi::class)
     override suspend fun execute(client: OpenRiroAPI, request: BoardRequest): Result<BoardResponse> = client.retry {
         val page = client.httpClient
             .get("${client.config.baseUrl}/board.php?db=${request.db.value}&page=${request.page}")
@@ -59,7 +63,16 @@ object Board: Request<Board.BoardRequest, Board.BoardResponse> {
         val items = mutableListOf<BoardItem>()
 
         html(page) {
-            total = selectFirst(".paging_total > .number > span")!!.text().toInt()
+            try {
+                total = selectFirst(".paging_total > .number > span")!!.text().toInt()
+            } catch (e: NullPointerException) {
+                if (selectFirst(".check_password_box") != null) throw BoardKindMismatchException(Menu.Board.Normal::class, Menu.Board.Score::class)
+
+                val select = selectFirst(".rd_select") ?: throw e
+
+                if (select.attr("onchange").contains("action=score")) throw BoardKindMismatchException(Menu.Board.Normal::class, Menu.Board.Score::class)
+                else throw e
+            }
 
             select(".rd_board > table").forEach {
                 it.select("tr").drop(1).forEach { tr ->
@@ -70,7 +83,7 @@ object Board: Request<Board.BoardRequest, Board.BoardResponse> {
                         dbId = request.db,
                         id = tds[0].text(),
                         uid = Uid(tds[2].selectFirst("a")!!.attr("href").substringAfter("bL(").substringBefore(")").split(",")[1].toInt()),
-                        kind = BoardMsgKind.entries.find { it.value == tds[1].text() } ?: throw Exception("알 수 없는 종류: ${tds[1].text()}"),
+                        kind = BoardMsgKind.entries.find { v -> v.value == tds[1].text() } ?: throw Exception("알 수 없는 종류: ${tds[1].text()}"),
                         title = tds[2].text(),
                         hasAttachments = tds[3].text() != "-",
                         author = tds[4].text(),

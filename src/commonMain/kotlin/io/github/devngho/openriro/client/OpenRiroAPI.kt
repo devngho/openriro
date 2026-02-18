@@ -2,6 +2,8 @@ package io.github.devngho.openriro.client
 
 import io.github.devngho.openriro.common.InternalApi
 import io.github.devngho.openriro.common.LoginFailedException
+import io.github.devngho.openriro.common.RequestFailedException
+import io.github.devngho.openriro.common.SessionExpiredException
 import io.github.devngho.openriro.endpoints.Login
 import io.ktor.client.*
 import io.ktor.client.plugins.cookies.*
@@ -50,7 +52,7 @@ abstract class OpenRiroAPI {
                 .find { it.name == "cookie_token" } == null || (resp.status == HttpStatusCode.Found && resp.headers["location"] == "/user.php?action=user_logout")) {
             login(true).getOrThrow()
 
-            throw Exception("Session expired")
+            throw SessionExpiredException()
         }
     }
 
@@ -64,10 +66,15 @@ abstract class OpenRiroAPI {
                 return@runCatching block()
             } catch (e: Exception) {
                 if (e is LoginFailedException) throw e // login info is wrong
+                if (e is RequestFailedException) throw e
             }
         }
 
-        block()
+        try {
+            block()
+        } catch (_: SessionExpiredException) {
+            block()
+        }
     }
 
     companion object {

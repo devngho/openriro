@@ -29,7 +29,7 @@ val api = OpenRiroAPI(
 
 val client = OpenRiroClient(api) // facade
 
-val menu1 = client.labeled<Menu.Board>("공지사항").getOrThrow()
+val menu1 = client.labeled<Menu.Board.Normal>("공지사항").getOrThrow()
 val paging1 = menu1.list().getOrThrow()
 println(paging1.get(0)) // 첫 페이지의 첫 번째 게시글을 불러옵니다.
 // 각 페이지 단위로 불러오거나(.page(0)), 전체에서 인덱스로 불러올 수 있습니다(.get(0))

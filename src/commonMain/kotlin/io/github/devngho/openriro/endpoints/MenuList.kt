@@ -24,7 +24,7 @@ object MenuList: Request<Unit, List<Menu>> {
                 val action = span.attr("onclick").substringAfter("menuAction('").substringBefore("', '');").split("?")
                 val name = span.text()
                 val menu = runCatching { when (action[0]) {
-                    "/board.php" -> Menu.Board(label=name, dbId = DBId(action[1].substringAfter("db=").toInt()))
+                    "/board.php" -> Menu.Board.Unknown(label=name, dbId = DBId(action[1].substringAfter("db=").toInt()))
                     "/board_msg.php" -> Menu.BoardMsg(label=name, dbId = DBId(action[1].substringAfter("db=").toInt()))
                     "/portfolio.php" -> Menu.Portfolio(label=name, dbId = DBId(action[1].substringAfter("db=").toInt()))
                     else -> null

@@ -4,6 +4,7 @@ import io.github.devngho.openriro.client.AuthConfig
 import io.github.devngho.openriro.client.OpenRiroAPI
 import io.github.devngho.openriro.client.RequestConfig
 import io.github.devngho.openriro.client.UserType
+import io.github.devngho.openriro.common.BoardKindMismatchException
 import io.github.devngho.openriro.common.InternalApi
 import io.github.devngho.openriro.common.RequestFailedException
 import io.github.devngho.openriro.common.Cate
@@ -18,10 +19,12 @@ import io.kotest.matchers.result.shouldBeFailure
 import io.kotest.matchers.result.shouldBeSuccess
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.types.shouldBeInstanceOf
 import io.ktor.http.*
 import java.io.File
 
 
+@OptIn(InternalApi::class)
 class OpenRiroClientTest : DescribeSpec({
     fun Any.prettyPrint(): String {
 
@@ -157,6 +160,15 @@ class OpenRiroClientTest : DescribeSpec({
                 println(it.list)
             }
         }
+
+        it("should fail incorrect request") {
+            val request = Board.BoardRequest(db = DBId(1010), page = 1)
+            val result = Board.execute(api, request)
+
+            result shouldBeFailure {
+                it.shouldBeInstanceOf<BoardKindMismatchException>()
+            }
+        }
     }
 
     describe("BoardItem") {
@@ -200,7 +212,7 @@ class OpenRiroClientTest : DescribeSpec({
         }
 
         it("should fail incorrect request") {
-            val request = PortfolioList.PortfolioListRequest(db = DBId(1556), page = 1, cate = Cate(107655))
+            val request = PortfolioList.PortfolioListRequest(db = DBId(1556), page = 1, cate = Cate(107457))
             val result = PortfolioList.execute(api, request)
 
             result shouldBeFailure {
@@ -275,6 +287,16 @@ class OpenRiroClientTest : DescribeSpec({
                         is Score.ScoreItem.WithStanding -> println("과목: ${s.name}, 점수: ${s.score}, 석차: ${s.standing}, 동석차: ${s.tiedStanding}, 전체인원: ${s.candidates}, 백분위: ${s.percentile}")
                     }
                 }
+            }
+        }
+
+        it("should fail incorrect request") {
+            val request = Score.ScoreRequest(db = DBId(1003))
+            val result = Score.execute(api, request)
+
+            result shouldBeFailure {
+                it.printStackTrace()
+                it.shouldBeInstanceOf<BoardKindMismatchException>()
             }
         }
     }

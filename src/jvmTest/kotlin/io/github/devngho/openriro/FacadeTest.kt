@@ -14,6 +14,7 @@ import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldNotBe
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.withTimeout
 import java.io.File
 
@@ -36,11 +37,11 @@ class FacadeTest: FunSpec({
     }
 
     context("a board") {
-        val menu = client.labeled<Menu.Board>("공지사항").getOrThrow()
+        val menu = client.labeled<Menu.Board.Normal>("공지사항").getOrThrow()
         val paging = menu.list().getOrThrow()
 
         test("can access notice") {
-            paging.page(0) shouldNotBe null
+            paging.get(0) shouldNotBe null
         }
 
         test("can access detail of notice") {
@@ -51,16 +52,16 @@ class FacadeTest: FunSpec({
         }
 
         test("can preload notice") {
-            paging.preloadPage(1)
+            paging.preload(20)
 
             withTimeout(10) {
-                paging.page(1) shouldNotBe null
+                paging.get(20) shouldNotBe null
             }
 
-            paging.preloadPage(2..10)
+            paging.preload(40..<200)
 
             withTimeout(10) {
-                paging.page(2..10) shouldNotBe null
+                paging.get(40..<200) shouldNotBe null
             }
         }
 
@@ -84,7 +85,7 @@ class FacadeTest: FunSpec({
         val paging = menu.list().getOrThrow()
 
         test("can access notice") {
-            paging.page(0) shouldNotBe null
+            paging.get(0) shouldNotBe null
         }
 
         test("can access detail of notice") {
@@ -95,16 +96,16 @@ class FacadeTest: FunSpec({
         }
 
         test("can preload notice") {
-            paging.preloadPage(1)
+            paging.preload(20)
 
             withTimeout(10) {
-                paging.page(1) shouldNotBe null
+                paging.get(20) shouldNotBe null
             }
 
-            paging.preloadPage(2..10)
+            paging.preload(40..<200)
 
             withTimeout(10) {
-                paging.page(2..10) shouldNotBe null
+                paging.get(40..<200) shouldNotBe null
             }
         }
 
@@ -128,20 +129,20 @@ class FacadeTest: FunSpec({
         val paging = menu.list().getOrThrow()
 
         test("can access portfolio") {
-            paging.page(0) shouldNotBe null
+            paging.get(0) shouldNotBe null
         }
 
         test("can preload portfolio") {
-            paging.preloadPage(1)
+            paging.preload(20)
 
             withTimeout(10) {
-                paging.page(1) shouldNotBe null
+                paging.get(20) shouldNotBe null
             }
 
-            paging.preloadPage(2..10)
+            paging.preload(40..<200)
 
             withTimeout(10) {
-                paging.page(2..10) shouldNotBe null
+                paging.get(40..<200) shouldNotBe null
             }
         }
 
@@ -169,20 +170,20 @@ class FacadeTest: FunSpec({
         paging shouldNotBe null
 
         test("can access portfolio") {
-            paging.page(0) shouldNotBe null
+            paging.get(0) shouldNotBe null
         }
 
         test("can preload portfolio") {
-            paging.preloadPage(1)
+            paging.preload(20)
 
             withTimeout(10) {
-                paging.page(1) shouldNotBe null
+                paging.get(20) shouldNotBe null
             }
 
-            paging.preloadPage(2..5)
+            paging.preload(40..<100)
 
             withTimeout(10) {
-                paging.page(2..5) shouldNotBe null
+                paging.get(40..<100) shouldNotBe null
             }
         }
 
@@ -198,6 +199,34 @@ class FacadeTest: FunSpec({
                 paging.get(300..<400) shouldNotBe null
                 paging.get(300..<400) shouldHaveSize 100
             }
+        }
+
+        test("can create as flow") {
+            val flow = paging.asFlow()
+
+            withTimeout(10) {
+                flow.first() shouldNotBe null
+            }
+
+            flow.toList() shouldHaveSize paging.totalCount
+        }
+    }
+
+    context("a score") {
+        val menu = client.labeled<Menu.Board.Score>("성적조회").getOrThrow()
+
+        test("can access score") {
+            val paging = menu.list().getOrThrow()
+            println(paging.get(0..<paging.totalCount))
+            paging.get(0) shouldNotBe null
+        }
+
+        test("can access detail of score") {
+            val paging = menu.list().getOrThrow()
+            val page = paging.get(0) ?: return@test
+            val detail = page.get().getOrThrow()
+
+            detail.scores[0] shouldNotBe null
         }
     }
 })
