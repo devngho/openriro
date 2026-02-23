@@ -5,7 +5,6 @@ import io.github.devngho.openriro.client.OpenRiroAPI
 import io.github.devngho.openriro.client.RequestConfig
 import io.github.devngho.openriro.client.UserType
 import io.github.devngho.openriro.common.Menu
-import io.github.devngho.openriro.endpoints.PortfolioList
 import io.github.devngho.openriro.facade.OpenRiroClient
 import io.github.devngho.openriro.facade.OpenRiroClient.Companion.get
 import io.github.devngho.openriro.facade.OpenRiroClient.Companion.list
@@ -42,6 +41,7 @@ class FacadeTest: FunSpec({
 
         test("can access notice") {
             paging.get(0) shouldNotBe null
+            println(paging.get(1))
         }
 
         test("can access detail of notice") {

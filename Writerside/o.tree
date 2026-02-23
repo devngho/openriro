@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE instance-profile
+        SYSTEM "https://resources.jetbrains.com/writerside/1.0/product-profile.dtd">
+
+<instance-profile id="o"
+                 name="openriro"
+                 start-page="starter-topic.md">
+
+    <toc-element topic="starter-topic.md">
+    </toc-element>
+    <toc-element topic="캐싱.md"/>
+    <toc-element toc-title="메뉴">
+        <toc-element topic="Board.md"/>
+        <toc-element topic="Paged.md"/>
+        <toc-element topic="Portfolio.md"/>
+        <toc-element topic="BoardMsg.md"/>
+    </toc-element>
+</instance-profile>

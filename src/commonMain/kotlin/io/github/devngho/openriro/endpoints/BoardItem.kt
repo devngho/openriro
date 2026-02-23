@@ -53,7 +53,7 @@ object BoardItem: Request<BoardItem.BoardItemRequest, BoardItem.BoardItemRespons
 
             val meta = header[1].childElementsList()
             val writtenAt = LocalDateTime.parse(meta[0].text().removePrefix("등록일").trim(), format)
-            val reads = meta[1].text().removePrefix("조회").removeSuffix("|").trim().toInt()
+            val reads = meta[1].text().removePrefix("조회").removeSuffix("|").trim().replace(",", "").toInt()
             val author = meta[2].text().removePrefix("글쓴이").removeSuffix("|").trim()
 
             val body = selectFirst(".ck-content")!!.html()

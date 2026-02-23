@@ -21,6 +21,8 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 import io.ktor.http.*
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.runBlocking
 import java.io.File
 
 
@@ -142,6 +144,48 @@ class OpenRiroClientTest : DescribeSpec({
                     (1..12).map { v -> "1${v.toString().padStart(2, '0')}" } + (1..12).map { v -> "2${v.toString().padStart(2, '0')}" }
                 )
                 it.form shouldNotBe null
+                it.form!!.let { form ->
+                    form.questions shouldHaveSize 3
+                    form.questions[0].answer.shouldBeInstanceOf<BoardMsgItem.BoardMsgFormAnswer.Radio>()
+                    (form.questions[0].answer as BoardMsgItem.BoardMsgFormAnswer.Radio).options[0].selected shouldBe true
+                    (form.questions[0].answer as BoardMsgItem.BoardMsgFormAnswer.Radio).options[1].selected shouldBe false
+                    form.questions[1].answer.shouldBeInstanceOf<BoardMsgItem.BoardMsgFormAnswer.Radio>()
+                    (form.questions[1].answer as BoardMsgItem.BoardMsgFormAnswer.Radio).options[0].selected shouldBe false
+                    (form.questions[1].answer as BoardMsgItem.BoardMsgFormAnswer.Radio).options[1].selected shouldBe true
+                    form.questions[2].answer.shouldBeInstanceOf<BoardMsgItem.BoardMsgFormAnswer.Radio>()
+                    (form.questions[2].answer as BoardMsgItem.BoardMsgFormAnswer.Radio).options[0].selected shouldBe false
+                    (form.questions[2].answer as BoardMsgItem.BoardMsgFormAnswer.Radio).options[1].selected shouldBe true
+
+                    form.isSubmitEnabled shouldBe false
+                }
+
+                println(it)
+            }
+        }
+
+        xit("should execute request with a form and submit it") {
+            val request = BoardMsgItem.BoardMsgItemRequest(db = DBId(1901), uid = Uid(1960))
+            val result = BoardMsgItem.execute(api, request)
+
+            result.exceptionOrNull()?.printStackTrace()
+
+            result shouldBeSuccess {
+                it.target shouldBe BoardMsgItem.BoardMsgItemTarget.Students(
+                    (1..12).map { v -> "1${v.toString().padStart(2, '0')}" } + (1..12).map { v -> "2${v.toString().padStart(2, '0')}" } + (1..12).map { v -> "3${v.toString().padStart(2, '0')}" }
+                )
+                it.form shouldNotBe null
+                it.form!!.isSubmitEnabled shouldBe true
+                runBlocking {
+                    it.form.submit {
+                        option<BoardMsgItem.BoardMsgFormAnswer.Radio>(0).set(1)
+                        option<BoardMsgItem.BoardMsgFormAnswer.Radio>(1).set(1)
+                        option<BoardMsgItem.BoardMsgFormAnswer.Radio>(2).set(1)
+
+                        sign()
+                    }.getOrThrow()
+
+                    it.form.delete().getOrThrow()
+                }
 
                 println(it)
             }

@@ -93,7 +93,7 @@ object BoardMsg: Request<BoardMsg.BoardMsgRequest, BoardMsg.BoardMsgResponse> {
                         title = tds[3].text(),
                         hasAttachments = tds[4].text() != "-",
                         author = tds[5].text(),
-                        reads = tds[6].text().toIntOrNull() ?: 0,
+                        reads = tds[6].text().replace(",", "").toIntOrNull() ?: 0,
                         date = LocalDate.parse(tds[7].text(), format)
                     )
                 }

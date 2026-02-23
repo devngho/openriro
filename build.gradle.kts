@@ -13,7 +13,7 @@ plugins {
 }
 
 group = "io.github.devngho"
-version = "0.1.1"
+version = "0.1.2"
 
 repositories {
     mavenCentral()
@@ -37,6 +37,7 @@ publishing {
         val pw: String =
             if (project.hasProperty("repoPassword")) project.property("repoPassword") as String
             else System.getenv("repoPassword")
+
         if (!version.toString().endsWith("SNAPSHOT")) {
             maven("https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/") {
                 name = "ossrh-staging-api"

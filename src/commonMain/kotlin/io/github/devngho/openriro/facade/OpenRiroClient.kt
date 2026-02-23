@@ -24,10 +24,10 @@ import kotlin.jvm.JvmName
 class OpenRiroClient(
     @property:InternalApi
     val api: OpenRiroAPI,
-    val boardCacheStrategy: CacheStrategy = CacheStrategy.BOARD,
-    val boardMsgCacheStrategy: CacheStrategy = CacheStrategy.BOARD_MSG,
-    val portfolioCacheStrategy: CacheStrategy = CacheStrategy.PORTFOLIO,
-    val portfolioListCacheStrategy: CacheStrategy = CacheStrategy.PORTFOLIO_LIST
+    var boardCacheStrategy: CacheStrategy = CacheStrategy.BOARD,
+    var boardMsgCacheStrategy: CacheStrategy = CacheStrategy.BOARD_MSG,
+    var portfolioCacheStrategy: CacheStrategy = CacheStrategy.PORTFOLIO,
+    var portfolioListCacheStrategy: CacheStrategy = CacheStrategy.PORTFOLIO_LIST
 ) {
     inner class WithClient<T>(val value: T) {
         val client = this@OpenRiroClient
@@ -132,16 +132,6 @@ class OpenRiroClient(
     }
 
     companion object {
-        @JvmName("listMenu")
-        @Suppress("UNCHECKED_CAST")
-        suspend fun <T: Menu> WithClient<T>.list(cacheStrategy: CacheStrategy? = null):  Result<Paged<T>> = when (this.value) {
-            is Menu.Board.Unknown -> (this as WithClient<Menu.Board.Unknown>).materialize().getOrThrow().list(cacheStrategy ?: this.client.boardCacheStrategy) as Result<Paged<T>>
-            is Menu.Board.Score -> (this as WithClient<Menu.Board.Score>).list(cacheStrategy ?: this.client.boardCacheStrategy) as Result<Paged<T>>
-            is Menu.Board.Normal -> (this as WithClient<Menu.Board.Normal>).list(cacheStrategy ?: this.client.boardCacheStrategy) as Result<Paged<T>>
-            is Menu.Portfolio -> (this as WithClient<Menu.Portfolio>).list(cacheStrategy ?: this.client.portfolioCacheStrategy) as Result<Paged<T>>
-            is Menu.BoardMsg -> (this as WithClient<Menu.BoardMsg>).list(cacheStrategy ?: this.client.boardMsgCacheStrategy) as Result<Paged<T>>
-        }
-
         suspend fun <T: Menu.Board> WithClient<T>.materialize(): Result<WithClient<Menu.Board>> = runCatching {
             @Suppress("UNCHECKED_CAST")
             if (this.value is Menu.Board.Normal || this.value is Menu.Board.Score) return@runCatching this as WithClient<Menu.Board>
@@ -182,7 +172,7 @@ class OpenRiroClient(
 
         @JvmName("listBoard")
         suspend fun WithClient<Menu.Board.Normal>.list(cacheStrategy: CacheStrategy = this.client.boardCacheStrategy): Result<Paged<WithClient<Board.BoardItem>>> = runCatching {
-            this.client.getOrCreatePaged(this.value.dbId to "board") {
+            this.client.getOrCreatePaged(this.value.dbId to "board-normal") {
                 val res = Board.execute(this.client.api, Board.BoardRequest(db = this.value.dbId)).getOrThrow()
 
                 val initialPage = res.list.map { this.client.WithClient(it) }
@@ -196,7 +186,7 @@ class OpenRiroClient(
 
         @JvmName("listScore")
         suspend fun WithClient<Menu.Board.Score>.list(cacheStrategy: CacheStrategy = this.client.boardCacheStrategy): Result<Paged<WithClient<Score.ScoreOptions>>> = runCatching {
-            this.client.getOrCreatePaged(this.value.dbId to "board") {
+            this.client.getOrCreatePaged(this.value.dbId to "board-score") {
                 val res = Score.execute(this.client.api, Score.ScoreRequest(db = this.value.dbId)).getOrThrow()
 
                 val initialPage = res.scoreOptions.map { this.client.WithClient(it) }
