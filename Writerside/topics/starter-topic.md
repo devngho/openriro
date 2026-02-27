@@ -24,7 +24,7 @@
 에서 확인하세요.
 
 ```kotlin
-implementation("com.github.devngho:openriro:[VERSION]")
+implementation("io.github.devngho:openriro:[VERSION]")
 ```
 
 ## 사용하기

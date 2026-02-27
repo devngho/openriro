@@ -16,7 +16,7 @@
 ## 사용하기
 
 ```kotlin
-implementation("com.github.devngho:openriro:[VERSION]")
+implementation("io.github.devngho:openriro:[VERSION]")
 ```
 
 ## 예시
