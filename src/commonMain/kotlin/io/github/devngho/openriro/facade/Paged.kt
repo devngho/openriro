@@ -5,8 +5,8 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 
-abstract class Paged<T> {
-    abstract val totalCount: Int
+abstract class Paged<T>: Flow<T> {
+    abstract val size: Int
 
     abstract suspend fun get(index: Int): T?
 
@@ -25,12 +25,10 @@ abstract class Paged<T> {
     }
 
     suspend fun preloadAll() = coroutineScope {
-        (0 until totalCount).map { index ->
+        (0 until size).map { index ->
             async { preload(index) }
         }.awaitAll()
     }
-
-    abstract fun asFlow(): Flow<T>
 
     abstract suspend fun invalidate()
 }

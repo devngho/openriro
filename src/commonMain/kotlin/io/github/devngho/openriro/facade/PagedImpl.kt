@@ -1,5 +1,7 @@
 package io.github.devngho.openriro.facade
 
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -21,7 +23,7 @@ class PagedImpl<T>(
     private val pageMutexes = mutableMapOf<Int, Mutex>()
     private val mapMutex = Mutex()
     private val revalidationMutex = Mutex()
-    override val totalCount: Int get() = knownTotalCount
+    override val size: Int get() = knownTotalCount
     private var knownTotalCount = initialTotalCount
     private var pageSize = initialPageSize
     // 만약 (initialPageSize == initialTotalCount)라면 페이지가 하나뿐이므로 pageSize가 확정된 것으로 간주할 수 없음
@@ -190,13 +192,13 @@ class PagedImpl<T>(
         }
     }
 
-    override fun asFlow() = channelFlow {
-        for (i in 0 until totalCount) {
+    override suspend fun collect(collector: FlowCollector<T>) = coroutineScope {
+        for (i in 0 until size) {
 //            if (i + 1 < totalPages) launch { preload((i + 1) * pageSize) }
             // preloading next page improves performance by about 10%
             if (totalPages > 1 && i + 1 < totalPages) launch { preload((i + 1) * pageSize) }
 
-            send(get(i) ?: return@channelFlow)
+            collector.emit(get(i) ?: return@coroutineScope)
         }
     }
 

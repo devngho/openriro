@@ -16,6 +16,7 @@ import io.github.devngho.openriro.endpoints.Portfolio
 import io.github.devngho.openriro.endpoints.PortfolioItem
 import io.github.devngho.openriro.endpoints.PortfolioList
 import io.github.devngho.openriro.endpoints.Score
+import io.github.devngho.openriro.endpoints.Timetable
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlin.jvm.JvmName
@@ -230,6 +231,25 @@ class OpenRiroClient(
             }
         }
 
+        @JvmName("listTimetable")
+        suspend fun OpenRiroClient.timetable(cacheStrategy: CacheStrategy = this.boardCacheStrategy): Result<Paged<WithClient<Timetable.TimetableLecture>>> = runCatching {
+            this.getOrCreatePaged("timetable") {
+                val res = Timetable.execute(this.api, Timetable.TimetableRequest()).getOrThrow()
+
+                val initialPage = res.timetableLectures.map { this.WithClient(it) }
+
+                PagedImpl(initialPage, res.timetableLectures.count(), res.timetableLectures.count(), cacheStrategy) { page ->
+                    // no pagination like score
+                    if (page == 0) {
+                        val r = Timetable.execute(this.api, Timetable.TimetableRequest()).getOrThrow()
+                        PagedImpl.FetchResult(r.timetableLectures.map { this.WithClient(it) }, r.timetableLectures.count())
+                    } else {
+                        PagedImpl.FetchResult(emptyList(), res.timetableLectures.count())
+                    }
+                }
+            }
+        }
+
         @JvmName("getBoard")
         suspend fun WithClient<Menu.Board.Normal>.get(uid: Uid) = runCatching {
             BoardItem.execute(this.client.api, BoardItem.BoardItemRequest(db = this.value.dbId, uid = uid)).getOrThrow()
@@ -273,6 +293,11 @@ class OpenRiroClient(
         @JvmName("getScoreOption")
         suspend fun WithClient<Score.ScoreOptions>.get(): Result<Score.ScoreResponse> = runCatching {
             Score.execute(this.client.api, Score.ScoreRequest(db = this.value.dbId, uid = this.value.uid)).getOrThrow()
+        }
+
+        @JvmName("getTimetable")
+        suspend fun WithClient<Timetable.TimetableLecture>.get(): Result<Timetable.TimetableResponse> = runCatching {
+            Timetable.execute(this.client.api, Timetable.TimetableRequest(db = this.value.dbId, cate = this.value.cate, uid = this.value.uid)).getOrThrow()
         }
     }
 }

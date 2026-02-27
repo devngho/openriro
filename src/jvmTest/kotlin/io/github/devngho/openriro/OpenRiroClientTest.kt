@@ -15,6 +15,7 @@ import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.collections.shouldNotBeEmpty
 import io.kotest.matchers.comparables.shouldBeGreaterThan
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.result.shouldBeFailure
 import io.kotest.matchers.result.shouldBeSuccess
 import io.kotest.matchers.shouldBe
@@ -143,8 +144,8 @@ class OpenRiroClientTest : DescribeSpec({
                 it.target shouldBe BoardMsgItem.BoardMsgItemTarget.Students(
                     (1..12).map { v -> "1${v.toString().padStart(2, '0')}" } + (1..12).map { v -> "2${v.toString().padStart(2, '0')}" }
                 )
-                it.form shouldNotBe null
-                it.form!!.let { form ->
+                it.form.shouldNotBeNull()
+                it.form.let { form ->
                     form.questions shouldHaveSize 3
                     form.questions[0].answer.shouldBeInstanceOf<BoardMsgItem.BoardMsgFormAnswer.Radio>()
                     (form.questions[0].answer as BoardMsgItem.BoardMsgFormAnswer.Radio).options[0].selected shouldBe true
@@ -173,8 +174,8 @@ class OpenRiroClientTest : DescribeSpec({
                 it.target shouldBe BoardMsgItem.BoardMsgItemTarget.Students(
                     (1..12).map { v -> "1${v.toString().padStart(2, '0')}" } + (1..12).map { v -> "2${v.toString().padStart(2, '0')}" } + (1..12).map { v -> "3${v.toString().padStart(2, '0')}" }
                 )
-                it.form shouldNotBe null
-                it.form!!.isSubmitEnabled shouldBe true
+                it.form.shouldNotBeNull()
+                it.form.isSubmitEnabled shouldBe true
                 runBlocking {
                     it.form.submit {
                         option<BoardMsgItem.BoardMsgFormAnswer.Radio>(0).set(1)
@@ -341,6 +342,25 @@ class OpenRiroClientTest : DescribeSpec({
             result shouldBeFailure {
                 it.printStackTrace()
                 it.shouldBeInstanceOf<BoardKindMismatchException>()
+            }
+        }
+    }
+
+    describe("Timetable") {
+        it("should execute request") {
+            val request = Timetable.TimetableRequest(db = DBId(1704), cate = Cate(18), uid = Uid(14592))
+            val result = Timetable.execute(api, request)
+
+            println(request)
+            // show as table-like
+            result.getOrThrow().table?.forEach {
+                println(it.cols.joinToString("\t") { c -> "${c.name}(${c.teacher}, ${c.room}, ${c.seat})" })
+            }
+
+            result shouldBeSuccess {
+                println(it.selectedLecture)
+                println(it.timetableLectures)
+                println(it.table)
             }
         }
     }

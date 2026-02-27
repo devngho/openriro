@@ -8,8 +8,10 @@ import io.github.devngho.openriro.common.Menu
 import io.github.devngho.openriro.facade.OpenRiroClient
 import io.github.devngho.openriro.facade.OpenRiroClient.Companion.get
 import io.github.devngho.openriro.facade.OpenRiroClient.Companion.list
+import io.github.devngho.openriro.facade.OpenRiroClient.Companion.timetable
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldHaveSize
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldNotBe
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
@@ -162,7 +164,7 @@ class FacadeTest: FunSpec({
     }
 
     context("a portfolio list") {
-        val menu = client.labeled<Menu.Portfolio>("교과활동").getOrThrow().list().getOrThrow().asFlow().filterNotNull().first { (it, _) ->
+        val menu = client.labeled<Menu.Portfolio>("교과활동").getOrThrow().list().getOrThrow().filterNotNull().first { (it, _) ->
             it.isSubmitted && it.summitCount >= 300
         }
         val paging = menu.list().getOrThrow()
@@ -202,13 +204,11 @@ class FacadeTest: FunSpec({
         }
 
         test("can create as flow") {
-            val flow = paging.asFlow()
-
             withTimeout(10) {
-                flow.first() shouldNotBe null
+                paging.first() shouldNotBe null
             }
 
-            flow.toList() shouldHaveSize paging.totalCount
+            paging.toList() shouldHaveSize paging.size
         }
     }
 
@@ -217,7 +217,7 @@ class FacadeTest: FunSpec({
 
         test("can access score") {
             val paging = menu.list().getOrThrow()
-            println(paging.get(0..<paging.totalCount))
+            println(paging.get(0..<paging.size))
             paging.get(0) shouldNotBe null
         }
 
@@ -227,6 +227,26 @@ class FacadeTest: FunSpec({
             val detail = page.get().getOrThrow()
 
             detail.scores[0] shouldNotBe null
+        }
+    }
+
+    context("timetables") {
+        val timetable = client.timetable().getOrThrow()
+
+        test("can access timetable") {
+            println(timetable.get(0..<timetable.size))
+            timetable.get(0) shouldNotBe null
+        }
+
+        test("can access detail of timetable") {
+            val page = timetable.get(0) ?: return@test
+            val detail = page.get().getOrThrow()
+
+            detail.table.shouldNotBeNull()
+
+            detail.table.forEach {
+                println(it.cols.joinToString("\t") { c -> "${c.name}(${c.teacher}, ${c.room}, ${c.seat})" })
+            }
         }
     }
 })

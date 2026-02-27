@@ -268,7 +268,7 @@ class PagedImplTest : DescribeSpec({
         }
 
         it("emits all items in order") {
-            val items = paged.asFlow().toList()
+            val items = paged.toList()
             items shouldHaveSize 25
             items shouldBe (0..<25).map { "item-$it" }
         }
@@ -368,7 +368,7 @@ class PagedImplTest : DescribeSpec({
             heavyPaged.invalidate()
 
             val w3 = TimeSource.Monotonic.markNow()
-            val res = heavyPaged.asFlow().toList()
+            val res = heavyPaged.toList()
             val w3Elapsed = w3.elapsedNow()
 
             res.shouldHaveSize(totalCount)
@@ -382,7 +382,7 @@ class PagedImplTest : DescribeSpec({
 
             heavyPaged.preloadAll()
             val w4 = TimeSource.Monotonic.markNow()
-            val res2 = heavyPaged.asFlow().toList()
+            val res2 = heavyPaged.toList()
             val w4Elapsed = w4.elapsedNow()
 
             res2.shouldHaveSize(totalCount)
@@ -393,6 +393,7 @@ class PagedImplTest : DescribeSpec({
             w4Elapsed shouldBeLessThan 10.milliseconds
         }
     }
+
     describe("OpenRiroClient paged instance cache") {
         val client = OpenRiroClient(mockk<OpenRiroAPI>(relaxed = true))
 
