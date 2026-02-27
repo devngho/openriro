@@ -10,9 +10,13 @@
     </toc-element>
     <toc-element topic="캐싱.md"/>
     <toc-element topic="Paged.md"/>
-    <toc-element toc-title="메뉴">
-        <toc-element topic="Board.md"/>
-        <toc-element topic="Portfolio.md"/>
-        <toc-element topic="BoardMsg.md"/>
+    <toc-element toc-title="클라이언트">
+        <toc-element topic="메뉴.md">
+            <toc-element topic="Board.md"/>
+            <toc-element topic="BoardMsg.md"/>
+            <toc-element topic="Portfolio.md"/>
+        </toc-element>
+        <toc-element topic="Timetable.md">
+        </toc-element>
     </toc-element>
 </instance-profile>

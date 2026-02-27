@@ -63,12 +63,8 @@ val client = OpenRiroClient(api)
 /board_msg.php (`BoardMsg`)
 : {type=wide} 가정통신문 등이 있는 게시판 메뉴입니다. `대상`이 있고, 설문조사가 가능한 메뉴입니다.
 
-→ 자세한 내용은 [`BoardMsg`](BoardMsg.md)를 참고하세요.
-
 /portfolio.php (`Portfolio`)
 : {type=wide} 보고서 등이 있는 메뉴입니다. 하위로 여러 과제가 있고, 각 과제마다 여러 제출물이 있는 메뉴입니다.
-
-→ 자세한 내용은 [`Portfolio`](Portfolio.md)를 참고하세요.
 
 공지사항은 `Board.Normal` 메뉴에 있습니다. 메뉴를 가져오려면 `OpenRiroClient.labeled` 함수를 사용하면 됩니다.
 
